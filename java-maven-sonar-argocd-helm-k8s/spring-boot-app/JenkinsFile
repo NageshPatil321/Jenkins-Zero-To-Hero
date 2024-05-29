@@ -14,31 +14,30 @@ pipeline {
     }
     stage('Build and Test') {
       steps {
-        sh 'ls -ltr'
         // build the project and create a JAR file
         sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
       }
     }
     stage('Static Code Analysis') {
       environment {
-        SONAR_URL = "http://34.201.116.83:9000"
+        SONAR_URL = "http://3.99.130.132:9000"
       }
       steps {
-        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+        withCredentials([string(credentialsId: 'Sonarqube-server-id', variable: 'SONAR_AUTH_TOKEN')]) {
           sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
         }
       }
     }
     stage('Build and Push Docker Image') {
       environment {
-        DOCKER_IMAGE = "abhishekf5/ultimate-cicd:${BUILD_NUMBER}"
-        REGISTRY_CREDENTIALS = credentials('docker-cred')
+        DOCKER_IMAGE = "nagesh0205/ultimate-cicd:${BUILD_NUMBER}"
+        REGISTRY_CREDENTIALS = credentials('Docker-server-id')
       }
       steps {
         script {
           sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
           def dockerImage = docker.image("${DOCKER_IMAGE}")
-          docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
+          docker.withRegistry('https://index.docker.io/v1/', "Docker-server-id") {
             dockerImage.push()
           }
         }
@@ -54,17 +53,24 @@ pipeline {
           script {
             def repoUrl = "https://${GIT_USER_NAME}:${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git"
             sh """
-              cd /opt/
-              mkdir -p ${GIT_REPO_NAME}
-              cd ${GIT_REPO_NAME}
-              git init
-              git remote add origin ${repoUrl}
+              # Clean up any existing repository directory
+              rm -rf /opt/${GIT_REPO_NAME}
+              mkdir -p /opt/${GIT_REPO_NAME}
+              cd /opt/${GIT_REPO_NAME}
+              
+              # Clone the repository
+              git clone ${repoUrl} .
               git config user.email "nagesh.patil@gmail.com"
               git config user.name "nagesh patil"
-              git fetch origin
+              
+              # Fetch and merge with unrelated histories
               git pull origin main --allow-unrelated-histories
-              sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" spring-boot-app-manifests/deployment.yml
-              git add spring-boot-app-manifests/deployment.yml
+              
+              # Update the deployment file
+              sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+              
+              # Commit and push the changes
+              git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
               git commit -m "Update deployment image to version ${BUILD_NUMBER}"
               git push origin main
             """
