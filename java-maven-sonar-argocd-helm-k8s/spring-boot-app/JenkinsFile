@@ -68,7 +68,7 @@ pipeline {
                             git config user.email "nagesh.patil@gmail.com"
                             git config user.name "nagesh patil"
                             git fetch origin
-                            git merge origin/main
+                            git merge origin/main --allow-unrelated-histories
                             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" spring-boot-app-manifests/deployment.yml
                             git add spring-boot-app-manifests/deployment.yml
                             git commit -m "Update deployment image to version ${BUILD_NUMBER}"
