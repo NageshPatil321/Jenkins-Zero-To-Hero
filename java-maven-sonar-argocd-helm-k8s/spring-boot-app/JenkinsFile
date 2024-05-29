@@ -50,20 +50,27 @@ pipeline {
                 GIT_REPO_NAME = "spring-boot-app-manifests"
                 GIT_USER_NAME = "NageshPatil321"
             }
+        stage('Update Deployment File') {
+            environment {
+                GIT_REPO_NAME = "spring-boot-app-manifests"
+                GIT_USER_NAME = "NageshPatil321"
+            }
             steps {
                 withCredentials([string(credentialsId: 'Github-server-id', variable: 'GITHUB_TOKEN')]) {
                     script {
                         def repoUrl = "https://${GIT_USER_NAME}:${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git"
                         sh """
+                            cd /opt/
+                            mkdir GIT_REPO_NAME
+                            cd GIT_REPO_NAME
+                            git init
+                            git remote add origin repoUrl
                             git config user.email "nagesh.patil@gmail.com"
                             git config user.name "nagesh patil"
-                            if [ ! -d "${GIT_REPO_NAME}" ]; then
-                                git clone ${repoUrl}
-                            fi
-                            cd ${GIT_REPO_NAME}
-                            git pull --allow-unrelated-histories origin main
-                            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-                            git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+                            git fetch origin
+                            git merge origin/main
+                            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" spring-boot-app-manifests/deployment.yml
+                            git add spring-boot-app-manifests/deployment.yml
                             git commit -m "Update deployment image to version ${BUILD_NUMBER}"
                             git push origin main
                         """
