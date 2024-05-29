@@ -57,9 +57,11 @@ pipeline {
                         sh """
                             git config user.email "nagesh.patil@gmail.com"
                             git config user.name "nagesh patil"
-                            git clone ${repoUrl}
+                            if [ ! -d "${GIT_REPO_NAME}" ]; then
+                                git clone ${repoUrl}
+                            fi
                             cd ${GIT_REPO_NAME}
-                            git pull origin main
+                            git pull --allow-unrelated-histories origin main
                             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
                             git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
                             git commit -m "Update deployment image to version ${BUILD_NUMBER}"
